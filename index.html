@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAT Practice Test</title>
+<style>
+:root{--blue:#1b4fd8;--ink:#1a1a1a;--mute:#5f6670;--line:#d5d9e0;--bg:#fff;--soft:#f3f5f9;--red:#c0392b}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font-family:Georgia,"Times New Roman",serif;color:var(--ink);background:var(--bg)}
+button,input{font:inherit}
+#app{height:100%;display:flex;flex-direction:column}
+.ui{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:10px 20px;border-bottom:2px dashed var(--line)}
+.top .t{font-weight:700;font-size:15px}.top .sub{color:var(--mute);font-size:13px}
+.clock{text-align:center}.clock b{font-size:22px;font-variant-numeric:tabular-nums}.clock.low b{color:var(--red)}
+.clock button{display:block;margin:2px auto 0;border:1px solid var(--line);background:#fff;border-radius:99px;padding:1px 10px;font-size:12px;cursor:pointer}
+.tools{justify-self:end;display:flex;gap:8px}
+.btn{border:1.5px solid var(--blue);background:#fff;color:var(--blue);border-radius:99px;padding:8px 20px;font-weight:600;cursor:pointer}
+.btn.fill{background:var(--blue);color:#fff}.btn:disabled{opacity:.4;cursor:default}
+.main{flex:1;overflow:auto;display:flex}
+.pane{flex:1;padding:28px 36px;overflow:auto;font-size:18px;line-height:1.6}
+.pane.l{border-right:2px solid var(--line);max-width:50%}.pane.solo{max-width:760px;margin:0 auto}
+.qhead{display:flex;align-items:center;gap:12px;background:var(--soft);padding:6px 10px;margin-bottom:18px;font-family:system-ui,sans-serif}
+.qn{background:#1a1a1a;color:#fff;padding:4px 12px;font-weight:700}
+.flag{border:0;background:none;color:var(--mute);cursor:pointer;margin-left:auto;font-size:14px}.flag.on{color:var(--red);font-weight:700}
+.opt{display:flex;align-items:center;gap:12px;margin:10px 0}
+.opt label{flex:1;display:flex;gap:14px;align-items:center;border:2px solid var(--line);border-radius:10px;padding:12px 16px;cursor:pointer}
+.opt label.sel{border-color:var(--blue);background:#eef3ff}
+.opt .ch{width:28px;height:28px;border:1.5px solid var(--ink);border-radius:50%;display:grid;place-items:center;font:600 14px system-ui;flex:none}
+.opt.x label span.tx{text-decoration:line-through;color:var(--mute)}
+.opt .st{border:0;background:none;color:var(--mute);cursor:pointer;font-size:13px;text-decoration:underline}
+.free input{font-size:20px;padding:10px 14px;border:2px solid var(--line);border-radius:8px;width:220px}
+.bot{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:10px 20px;border-top:2px dashed var(--line)}
+.bot .nav{justify-self:end;display:flex;gap:10px}
+.qnav{background:#1a1a1a;color:#fff;border:0;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer}
+.center{max-width:640px;margin:auto;padding:30px;text-align:center}
+.center h1{font-size:30px;margin:0 0 10px}.center p{color:var(--mute);line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:10px;margin:20px 0}
+.grid button{height:52px;border:2px dashed var(--line);background:#fff;border-radius:8px;font-weight:700;cursor:pointer;position:relative}
+.grid .done{border:2px solid var(--blue);background:#eef3ff;color:var(--blue)}
+.grid .cur{outline:3px solid #1a1a1a}.grid .fl::after{content:"\2691";position:absolute;top:-8px;right:-4px;color:var(--red);font-size:16px}
+table{border-collapse:collapse;width:100%;margin:16px 0;text-align:left}th,td{padding:8px 10px;border-bottom:1px solid var(--line)}
+.big{font-size:56px;font-weight:700;color:var(--blue)}
+.ok{color:#17803d}.bad{color:var(--red)}
+#calc{position:fixed;right:20px;bottom:70px;width:420px;height:420px;min-width:260px;min-height:240px;resize:both;overflow:hidden;border:2px solid #1a1a1a;border-radius:10px;background:#fff;z-index:9;display:none;flex-direction:column}
+#calc .h{background:#1a1a1a;color:#fff;padding:6px 12px;display:flex;justify-content:space-between;font:600 14px system-ui}
+#calc iframe{flex:1;border:0;width:100%}
+@media(max-width:800px){.main{flex-direction:column}.pane.l{max-width:none;border-right:0;border-bottom:2px solid var(--line)}.pane{padding:18px}.top{grid-template-columns:1fr auto}.top .tools{display:none}#calc{width:92vw;right:4vw}}
+</style></head><body><div id="app" class="ui"></div>
+<div id="calc"><div class="h"><span>Calculator</span><span style="cursor:pointer" onclick="calc.style.display='none'">Close</span></div><iframe src="about:blank" id="cf" title="Desmos"></iframe></div>
+<script>
+/* ===== CONFIG: edit freely ===== */
+const CFG={title:"SAT Practice Test",hardCutoff:0.6,breakMins:10,
+ mins:{rw:32,math:35}}; // module minutes. Real test: 32 and 35. Add questions to reach 27 (RW) and 22 (Math).
+/* Question format: {p:"passage (optional)", q:"question", c:["A","B","C","D"], a:index}  or grid-in: {q:"...", a:"29"} */
+const BANK={
+rw:{m1:[
+{p:"The Great Barrier Reef is often described as fragile, yet some corals have survived repeated bleaching events by hosting heat-tolerant algae. This suggests the reef's resilience is more ______ than previously assumed.",q:"Which choice completes the text with the most logical and precise word?",c:["negligible","considerable","indifferent","accidental"],a:1},
+{p:"Maya had never sailed before. ______ she completed the 40-mile regatta in under nine hours.",q:"Which choice completes the text with the most logical transition?",c:["For example,","Therefore,","Nevertheless,","Similarly,"],a:2},
+{p:"The committee ______ reviewing the proposals since Monday.",q:"Which choice completes the text so that it conforms to the conventions of Standard English?",c:["has been","have been","are","were"],a:0},
+{p:"\u201CI regret to inform you that the ferry will no longer stop at our island. I know how much it meant to us all.\u201D",q:"Which choice best describes the tone of the letter?",c:["celebratory","regretful","furious","bored"],a:1}],
+easy:[
+{p:"The meager meal left the hikers hungry.",q:"As used in the text, what does \u201Cmeager\u201D most nearly mean?",c:["scant","huge","tasty","spicy"],a:0},
+{p:"The books on the top shelf ______ covered in dust.",q:"Which choice completes the text so that it conforms to Standard English?",c:["is","are","was","be"],a:1}],
+hard:[
+{p:"Although the study's sample was small, its authors argued the effect was ______, appearing consistently across all five trials.",q:"Which choice completes the text with the most logical and precise word?",c:["spurious","robust","ephemeral","ambiguous"],a:1},
+{p:"The critic's praise was hardly ______; she lavished admiration only on works that truly earned it.",q:"Which choice completes the text with the most logical and precise word?",c:["indiscriminate","measured","tepid","belated"],a:0}]},
+math:{m1:[
+{q:"If 3x + 7 = 25, what is the value of x?",c:["5","6","7","8"],a:1},
+{q:"A line has slope 2 and passes through (0, 3). Which point lies on the line?",c:["(1, 5)","(2, 5)","(1, 4)","(3, 6)"],a:0},
+{q:"If f(x) = 2x\u00B2 \u2212 3, what is f(4)?",a:"29"},
+{q:"A circle has a radius of 5. What is its area?",c:["10\u03C0","25\u03C0","5\u03C0","50\u03C0"],a:1}],
+easy:[
+{q:"What is 15% of 80?",c:["10","12","15","18"],a:1},
+{q:"If 2x = 14, what is the value of x?",a:"7"}],
+hard:[
+{q:"What is the sum of the solutions to x\u00B2 \u2212 5x + 6 = 0?",c:["1","5","6","\u22125"],a:1},
+{q:"If x + y = 10 and x \u2212 y = 4, what is the value of xy?",a:"21"}]}};
+/* ===== ENGINE ===== */
+const $=s=>document.querySelector(s),app=$("#app"),L="ABCD";
+let S={sec:0,mod:0,route:null,res:[],cur:null,left:0,hide:false,tm:null};
+const SEC=[{k:"rw",name:"Reading and Writing"},{k:"math",name:"Math"}];
+function modQs(){const k=SEC[S.sec].k;return S.mod==0?BANK[k].m1:BANK[k][S.route]}
+function shell(top,mid,bot){app.innerHTML=top+'<div class="main">'+mid+'</div>'+bot}
+function intro(){const k=SEC[S.sec],n=modQs().length;
+ app.innerHTML=`<div class="main"><div class="center"><h1>Section ${S.sec+1}, Module ${S.mod+1}: ${k.name}</h1>
+ <p>${n} questions &middot; ${CFG.mins[k.k]} minutes. You can flag questions, cross out answers, and move freely within this module. Once you submit, you cannot return to it.</p>
+ ${S.mod==1?`<p>${S.route=="hard"?"Your next module is the harder set.":"Your next module is the easier set."}</p>`:""}
+ <button class="btn fill" onclick="begin()">Start module</button></div></div>`}
+function begin(){const qs=modQs();S.cur={qs,i:0,ans:{},fl:{},el:{},rev:false};S.left=CFG.mins[SEC[S.sec].k]*60;
+ clearInterval(S.tm);S.tm=setInterval(()=>{S.left--;if(S.left<=0){clearInterval(S.tm);submit(true)}else tick()},1000);render()}
+function fmt(t){return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0")}
+function tick(){const c=$("#clk");if(!c)return;c.textContent=S.hide?"":fmt(S.left);c.parentNode.classList.toggle("low",S.left<300)}
+function render(){const C=S.cur,q=C.qs[C.i],k=SEC[S.sec];
+ const top=`<div class="top"><div><div class="t">${CFG.title}</div><div class="sub">Section ${S.sec+1}, Module ${S.mod+1}: ${k.name}</div></div>
+ <div class="clock ${S.left<300?"low":""}"><b id="clk">${S.hide?"":fmt(S.left)}</b><button onclick="S.hide=!S.hide;render()">${S.hide?"Show":"Hide"}</button></div>
+ <div class="tools">${k.k=="math"?'<button class="btn" onclick="openCalc()">Calculator</button>':""}</div></div>`;
+ let body;
+ if(C.rev){body=`<div class="pane solo"><h2>Review your answers</h2><p>Dashed boxes are unanswered. Flagged questions show a flag.</p><div class="grid">${C.qs.map((_,j)=>`<button class="${C.ans[j]!==undefined&&C.ans[j]!==""?"done":""} ${C.fl[j]?"fl":""}" onclick="S.cur.rev=false;S.cur.i=${j};render()">${j+1}</button>`).join("")}</div>${C.conf?`<p><b>Submit this module? You cannot return to it.</b></p><button class="btn" onclick="S.cur.conf=false;render()">Cancel</button> <button class="btn fill" onclick="submit()">Yes, submit</button>`:`<button class="btn fill" onclick="S.cur.conf=true;render()">Submit module</button>`}</div>`}
+ else{const opts=q.c?q.c.map((t,j)=>{const sel=C.ans[C.i]===j,x=(C.el[C.i]||{})[j];return `<div class="opt ${x?"x":""}"><label class="${sel?"sel":""}"><input type="radio" hidden name="o" onclick="S.cur.ans[S.cur.i]=${j};render()"><span class="ch">${L[j]}</span><span class="tx">${t}</span></label><button class="st" onclick="strike(${j})">${x?"Undo":"Cross out"}</button></div>`}).join(""):`<div class="free"><p>Enter your answer:</p><input value="${C.ans[C.i]||""}" oninput="S.cur.ans[S.cur.i]=this.value.trim()"></div>`;
+  const qh=`<div class="qhead"><span class="qn">${C.i+1}</span><button class="flag ${C.fl[C.i]?"on":""}" onclick="S.cur.fl[S.cur.i]=!S.cur.fl[S.cur.i];render()">${C.fl[C.i]?"Flagged":"Flag for review"}</button></div>`;
+  body=q.p?`<div class="pane l">${q.p}</div><div class="pane">${qh}<p>${q.q}</p>${opts}</div>`:`<div class="pane solo">${qh}<p>${q.q}</p>${opts}</div>`}
+ const last=C.i==C.qs.length-1;
+ const bot=`<div class="bot"><div class="sub">${k.name}</div><button class="qnav" onclick="S.cur.conf=false;S.cur.rev=!S.cur.rev;render()">Question ${C.i+1} of ${C.qs.length} &#9662;</button>
+ <div class="nav"><button class="btn" ${C.i==0||C.rev?"disabled":""} onclick="S.cur.i--;render()">Back</button><button class="btn fill" ${C.rev?"disabled":""} onclick="${last?"S.cur.rev=true":"S.cur.i++"};render()">${last?"Review":"Next"}</button></div></div>`;
+ shell(top,body,bot)}
+function strike(j){const C=S.cur;C.el[C.i]=C.el[C.i]||{};C.el[C.i][j]=!C.el[C.i][j];render()}
+function openCalc(){const c=$("#calc");c.style.display="flex";if($("#cf").src=="about:blank")$("#cf").src="https://www.desmos.com/calculator"}
+function submit(auto){clearInterval(S.tm);$("#calc").style.display="none";const C=S.cur;
+ const ok=C.qs.map((q,j)=>String(C.ans[j]).toLowerCase()===String(q.c?q.a:q.a).toLowerCase());
+ const n=ok.filter(Boolean).length;S.res.push({sec:S.sec,mod:S.mod,route:S.route,n,t:C.qs.length,qs:C.qs,ans:C.ans,ok});
+ if(S.mod==0){S.route=n/C.qs.length>=CFG.hardCutoff?"hard":"easy";S.mod=1;S.res[S.res.length-1].timeUp=auto;intro()}
+ else if(S.sec==0){S.sec=1;S.mod=0;S.route=null;brk()}else results()}
+let bt;function brk(){let t=CFG.breakMins*60;
+ const draw=()=>app.innerHTML=`<div class="main"><div class="center"><h1>Break</h1><p>Rest your eyes and stretch. Math starts when the break ends or when you choose to continue.</p><div class="big">${fmt(t)}</div><button class="btn fill" onclick="clearInterval(bt);intro()">Resume testing</button></div></div>`;
+ draw();bt=setInterval(()=>{t--;if(t<=0){clearInterval(bt);intro()}else{const b=$(".big");if(b)b.textContent=fmt(t)}},1000)}
+function score(si){const r=S.res.filter(x=>x.sec==si),n=r[0].n+r[1].n,t=r[0].t+r[1].t,f=n/t,hard=r[1].route=="hard";
+ return {n,t,hard,s:Math.round((hard?300+500*f:200+400*f)/10)*10}}
+function results(){const a=score(0),b=score(1);
+ const rows=SEC.map((k,i)=>{const x=i?b:a;return `<tr><td>${k.name}</td><td>${x.n} / ${x.t}</td><td>${x.hard?"Harder":"Easier"}</td><td><b>${x.s}</b></td></tr>`}).join("");
+ const rev=S.res.map(r=>`<h3>${SEC[r.sec].name}, Module ${r.mod+1}</h3><table>${r.qs.map((q,j)=>`<tr><td>${j+1}</td><td class="${r.ok[j]?"ok":"bad"}">${r.ok[j]?"Correct":"Incorrect"}</td><td>Your answer: ${r.ans[j]===undefined||r.ans[j]===""?"blank":(q.c?L[r.ans[j]]:r.ans[j])}</td><td>Correct: ${q.c?L[q.a]:q.a}</td></tr>`).join("")}</table>`).join("");
+ app.innerHTML=`<div class="main"><div class="center" style="max-width:760px;text-align:left;overflow:auto"><h1>Your results</h1><div class="big">${a.s+b.s}</div><p>Total score out of 1600 (estimated)</p>
+ <table><tr><th>Section</th><th>Correct</th><th>Module 2</th><th>Score</th></tr>${rows}</table>
+ <p>Scores are estimates. The real SAT uses a statistical model that weighs question difficulty, so your official score will differ. Easier Module 2 paths cap section scores near 600.</p>
+ ${rev}<button class="btn fill" onclick="location.reload()">Take it again</button></div></div>`}
+function welcome(){app.innerHTML=`<div class="main"><div class="center"><h1>${CFG.title}</h1><p>This practice test follows the Digital SAT format: Reading and Writing, a 10-minute break, then Math. Each section has two timed modules, and your result in Module 1 decides whether Module 2 is easier or harder.</p><p>Find a quiet spot, close other tabs, and keep scratch paper nearby.</p><button class="btn fill" onclick="intro()">Begin test</button></div></div>`}
+welcome();
+</script></body></html>
